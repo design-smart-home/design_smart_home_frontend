@@ -21,6 +21,8 @@ jobs:
       - name: Build React app
         run: npm run build
       - name: Add server to known hosts
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
