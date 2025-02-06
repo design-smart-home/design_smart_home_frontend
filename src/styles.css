@@ -29,7 +29,7 @@ body {
 }
 
 /* Основной контент */
-.home-page {
+.home-page, .scenario-page {
   padding: 20px;
 }
 
