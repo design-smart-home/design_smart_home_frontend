@@ -69,3 +69,13 @@ body {
 .card button:hover {
   background-color: #ddd;
 }
+
+
+.devices-page {
+  padding: 20px;
+}
+
+.devices-page .content {
+  max-width: 800px;
+  margin: 0 auto;
+}

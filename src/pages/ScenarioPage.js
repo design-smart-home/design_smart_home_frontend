@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Импортируем axios
 import Form from '../components/Form';
 import Card from '../components/Card';
 import Header from '../components/Header';
@@ -6,16 +7,30 @@ import Header from '../components/Header';
 const ScenarioPage = () => {
   const [scenarios, setScenarios] = useState([]);
 
+  // Загрузка сценариев
+  useEffect(() => {
+    axios.get('http://localhost:3001/scenarios')
+      .then((response) => setScenarios(response.data))
+      .catch((error) => console.error('Ошибка при загрузке сценариев:', error));
+  }, []);
+
+  // Добавление сценария
   const addScenario = (name) => {
-    setScenarios([...scenarios, { name, status: 'ВКЛ/ВЫКЛ' }]);
+    axios.post('http://localhost:3001/scenarios', { name, status: 'ВКЛ/ВЫКЛ' })
+      .then((response) => setScenarios([...scenarios, response.data]))
+      .catch((error) => console.error('Ошибка при добавлении сценария:', error));
   };
 
-  const deleteScenario = (index) => {
-    setScenarios(scenarios.filter((_, i) => i !== index));
+  // Удаление сценария
+  const deleteScenario = (id) => {
+    axios.delete(`http://localhost:3001/scenarios/${id}`)
+      .then(() => setScenarios(scenarios.filter((scenario) => scenario.id !== id)))
+      .catch((error) => console.error('Ошибка при удалении сценария:', error));
   };
 
-  const configureScenario = (index) => {
-    console.log(`Настройка сценария ${index}`);
+  // Настройка сценария
+  const configureScenario = (id) => {
+    console.log(`Настройка сценария ${id}`);
   };
 
   return (
@@ -27,13 +42,13 @@ const ScenarioPage = () => {
         {scenarios.length === 0 ? (
           <p>Сценарии отсутствуют. Добавьте новый сценарий.</p>
         ) : (
-          scenarios.map((scenario, index) => (
+          scenarios.map((scenario) => (
             <Card
-              key={index}
+              key={scenario.id}
               title={scenario.name}
               status={scenario.status}
-              onConfigure={() => configureScenario(index)}
-              onDelete={() => deleteScenario(index)}
+              onConfigure={() => configureScenario(scenario.id)}
+              onDelete={() => deleteScenario(scenario.id)}
             />
           ))
         )}
