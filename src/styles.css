@@ -2,11 +2,14 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
 /* Шапка */
 .header {
-  background-color: #282c34;
+  background-color: #0056b3;
   padding: 10px 20px;
   color: white;
   display: flex;
@@ -29,8 +32,9 @@ body {
 }
 
 /* Основной контент */
-.home-page, .scenario-page {
+.home-page, .scenario-page, .devices-page {
   padding: 20px;
+  margin-left: 250px; /* Отступ для боковой панели */
 }
 
 .content {
@@ -70,12 +74,162 @@ body {
   background-color: #ddd;
 }
 
-
-.devices-page {
+/* Общие стили для форм авторизации и регистрации */
+.auth-form {
+  max-width: 400px;
+  margin: 50px auto;
   padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  margin-left: 350px;
 }
 
-.devices-page .content {
-  max-width: 800px;
-  margin: 0 auto;
+.auth-form h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.auth-form button {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.auth-form button:hover {
+  background-color: #0056b3;
+}
+
+.back-button, .register-button {
+  margin-top: 10px;
+  background-color: #6c757d;
+}
+
+.back-button:hover, .register-button:hover {
+  background-color: #5a6268;
+}
+
+/* Боковая панель */
+.sidebar {
+  width: 250px;
+  background-color: #f0f0f0;
+  padding: 20px;
+  height: calc(100vh - 60px); /* Высота минус высота шапки */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  position: fixed; /* Фиксированная позиция */
+  top: 60px; /* Отступ сверху, чтобы не перекрывать шапку */
+  left: 0;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar nav a {
+  color: #333;
+  text-decoration: none;
+  font-size: 18px;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.sidebar nav a:hover {
+  background-color: #ddd; /* Цвет фона при наведении */
+}
+
+/* Основной контент */
+.main-content {
+  flex-grow: 1; /* Основной контент занимает оставшееся пространство */
+  padding: 20px;
+  margin-left: 350px; /* Отступ для боковой панели */
+}
+
+/* Панель управления данными */
+.data-control-panel {
+  padding: 10px 20px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 250px; /* Отступ для боковой панели */
+}
+
+.data-control-panel select {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Область с виджетами */
+.widget-area {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Два столбца */
+  gap: 20px; /* Отступ между виджетами */
+  padding: 20px;
+  margin-left: 250px; /* Отступ для боковой панели */
+}
+
+.widget {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+}
+
+/* Стили для модального окна */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
 }

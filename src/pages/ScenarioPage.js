@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // Импортируем axios
+import axios from 'axios';
 import Form from '../components/Form';
 import Card from '../components/Card';
-import Header from '../components/Header';
 
 const ScenarioPage = () => {
   const [scenarios, setScenarios] = useState([]);
@@ -35,7 +34,6 @@ const ScenarioPage = () => {
 
   return (
     <div className="scenario-page">
-      <Header />
       <div className="content">
         <h2>Сценарии</h2>
         <Form onSubmit={addScenario} placeholder="Введите название сценария" />

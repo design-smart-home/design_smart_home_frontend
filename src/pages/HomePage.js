@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios'; // Импортируем axios
 import Form from '../components/Form';
 import Card from '../components/Card';
-import Header from '../components/Header';
 
 const HomePage = () => {
   const [scenes, setScenes] = useState([]);
@@ -35,7 +34,6 @@ const HomePage = () => {
 
   return (
     <div className="home-page">
-      <Header />
       <div className="content">
         <h2>Сцены</h2>
         <Form onSubmit={addScene} placeholder="Введите название сцены" />
