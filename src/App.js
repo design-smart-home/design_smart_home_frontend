@@ -6,23 +6,26 @@ import DevicesPage from './pages/DevicesPage';
 import NotFound from './pages/NotFound';
 import LoginForm from './components/LoginForm';
 import RegistrationForm from './components/RegistrationForm';
-import Dashboard from './components/Dashboard';
-import Header from './components/Header'; // Импортируем Header
-import Sidebar from './components/Sidebar'; // Импортируем Sidebar
+import Dashboard from './pages/Dashboard';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [registered, setRegistered] = useState(false); // Новое состояние для отслеживания регистрации
 
   // Функция для обработки входа
   const handleLogin = (email, password) => {
     console.log('Вход:', email, password);
     setIsLoggedIn(true);
+    setRegistered(false); // Сбрасываем флаг регистрации после входа
   };
 
   // Функция для обработки регистрации
   const handleRegister = (email, password) => {
     console.log('Регистрация:', email, password);
-    setIsLoggedIn(true); // После регистрации автоматически входим в систему
+    setRegistered(true); // Устанавливаем флаг регистрации
+    // Не устанавливаем isLoggedIn в true, чтобы пользователь вошел через авторизацию
   };
 
   // Функция для выхода
@@ -49,6 +52,8 @@ const App = () => {
               element={
                 isLoggedIn ? (
                   <Navigate to="/home" />
+                ) : registered ? (
+                  <LoginForm onLogin={handleLogin} />
                 ) : (
                   <LoginForm onLogin={handleLogin} />
                 )
@@ -61,6 +66,8 @@ const App = () => {
               element={
                 isLoggedIn ? (
                   <Navigate to="/home" />
+                ) : registered ? (
+                  <Navigate to="/" />
                 ) : (
                   <RegistrationForm onRegister={handleRegister} />
                 )

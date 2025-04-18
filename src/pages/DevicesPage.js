@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
+import { Button } from 'antd';
 
 const DevicesPage = () => {
   const [devices, setDevices] = useState([]);
@@ -71,7 +72,7 @@ const DevicesPage = () => {
     <div className="devices-page">
       <div className="content">
         <h2>Устройства</h2>
-        <button onClick={openModal}>Добавить устройство</button> {/* Кнопка для открытия модального окна */}
+        <Button type='primary' onClick={openModal}>Добавить устройство</Button> {/* Кнопка для открытия модального окна */}
 
         {devices.length === 0 ? (
           <p>Устройства отсутствуют. Добавьте новое устройство.</p>

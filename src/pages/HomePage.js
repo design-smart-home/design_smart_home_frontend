@@ -3,6 +3,7 @@ import axios from 'axios'; // Импортируем axios
 import Form from '../components/Form';
 import Card from '../components/Card';
 
+
 const HomePage = () => {
   const [scenes, setScenes] = useState([]);
 

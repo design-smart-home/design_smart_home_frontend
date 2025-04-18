@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from 'axios'; // Импортируем axios
 import Form from '../components/Form';
 import Card from '../components/Card';
 
