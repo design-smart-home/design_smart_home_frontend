@@ -1,46 +1,43 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useDrop } from 'react-dnd';
 import DraggableWidget from './DraggableWidget';
+import SliderWidget from './SliderWidget';
+import SwitchWidget from './SwitchWidget';
 
-const Workspace = ({ widgets, onDrop }) => {
-  const [positions, setPositions] = useState({});
+const Workspace = ({ widgets, onMoveWidget }) => {
   const workspaceRef = useRef(null);
 
-  const [, drop] = useDrop(() => ({
+  const [, drop] = useDrop({
     accept: 'widget',
-    drop: (item, monitor) => {
+    drop(item, monitor) {
       const offset = monitor.getClientOffset();
-      const workspaceRect = workspaceRef.current.getBoundingClientRect();
+      if (!offset || !workspaceRef.current) return;
 
-      if (offset) {
-        const newPosition = {
-          x: offset.x - workspaceRect.left,
-          y: offset.y - workspaceRect.top,
-        };
-        setPositions((prev) => ({ ...prev, [item.id]: newPosition }));
-        onDrop(item.type, newPosition);
+      const workspaceRect = workspaceRef.current.getBoundingClientRect();
+      const position = {
+        x: offset.x - workspaceRect.left,
+        y: offset.y - workspaceRect.top
+      };
+
+      // Обновляем позицию существующего виджета
+      if (item.id) {
+        onMoveWidget(item.id, position);
       }
-    },
-  }));
+    }
+  });
 
   return (
-    <div ref={drop} className="workspace-grid" style={{ position: 'relative', height: '100%' }}>
-      <div ref={workspaceRef} style={{ width: '100%', height: '100%' }}>
-        {widgets.map((widget) => (
+    <div ref={drop} className="workspace-container">
+      <div ref={workspaceRef} className="workspace-area">
+        {widgets.map(widget => (
           <DraggableWidget
             key={widget.id}
             id={widget.id}
-            position={positions[widget.id] || { x: 0, y: 0 }}
-            onMove={(newPosition) => {
-              const workspaceRect = workspaceRef.current.getBoundingClientRect();
-              const adjustedPosition = {
-                x: newPosition.x - workspaceRect.left,
-                y: newPosition.y - workspaceRect.top,
-              };
-              setPositions((prev) => ({ ...prev, [widget.id]: adjustedPosition }));
-            }}
+            type={widget.type}
+            position={widget.position}
+            onMove={onMoveWidget}
           >
-            {widget.component}
+            {widget.type === 'slider' ? <SliderWidget /> : <SwitchWidget />}
           </DraggableWidget>
         ))}
       </div>

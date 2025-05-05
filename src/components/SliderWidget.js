@@ -3,9 +3,9 @@ import { Slider } from 'antd';
 
 const SliderWidget = () => {
   return (
-    <div className="widget">
+    <div className="slider-widget">
       <h3>Слайдер</h3>
-      <Slider defaultValue={30} />
+      <Slider className="widget-control" />
     </div>
   );
 };

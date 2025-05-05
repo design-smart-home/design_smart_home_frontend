@@ -1,23 +1,22 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
 
-const Widget = ({ type, children, onClick }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
+const Widget = ({ type, children, onAdd }) => {
+  const [, drag] = useDrag(() => ({
     type: 'widget',
     item: { type },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
   }));
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onAdd(type);
+  };
 
   return (
     <div
       ref={drag}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'move',
-      }}
-      onClick={onClick} // Добавляем обработчик клика
+      className="widget-item"
+      onClick={handleClick}
     >
       {children}
     </div>

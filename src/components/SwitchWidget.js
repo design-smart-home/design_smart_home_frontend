@@ -3,9 +3,9 @@ import { Switch } from 'antd';
 
 const SwitchWidget = () => {
   return (
-    <div className="widget">
+    <div className="switch-widget">
       <h3>Свитчер</h3>
-      <Switch defaultChecked />
+      <Switch className="widget-control" defaultChecked />
     </div>
   );
 };
