@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
 
 const LoginForm = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onLogin(email, password); // Передаем email и пароль в родительский компонент
+    try {
+      const response = await axios.post('http://127.0.0.1:80/api/login/token', {
+        email,
+        password
+      });
+      onLogin(response.data.access_token);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed!');
+    }
   };
 
   return (
@@ -16,12 +28,12 @@ const LoginForm = ({ onLogin }) => {
       <h2>Вход</h2>
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Login:</label>
+          <label>Email:</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Введите login"
+            placeholder="Введите email"
             required
           />
         </div>

@@ -1,123 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import ScenarioPage from './pages/ScenarioPage';
-import DevicesPage from './pages/DevicesPage';
-import NotFound from './pages/NotFound';
 import LoginForm from './components/LoginForm';
 import RegistrationForm from './components/RegistrationForm';
 import Dashboard from './pages/Dashboard';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
+
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [registered, setRegistered] = useState(false); // Новое состояние для отслеживания регистрации
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Функция для обработки входа
-  const handleLogin = (email, password) => {
-    console.log('Вход:', email, password);
-    setIsLoggedIn(true);
-    setRegistered(false); // Сбрасываем флаг регистрации после входа
+  useEffect(() => {
+    const token = getCookie('jwt_token');
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
   };
 
-  // Функция для обработки регистрации
-  const handleRegister = (email, password) => {
-    console.log('Регистрация:', email, password);
-    setRegistered(true); // Устанавливаем флаг регистрации
-    // Не устанавливаем isLoggedIn в true, чтобы пользователь вошел через авторизацию
+  const setCookie = (name, value, days = 30) => {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/`;
   };
 
-  // Функция для выхода
+  const handleLogin = (token) => {
+    setCookie('jwt_token', token);
+    setIsAuthenticated(true);
+  };
+
   const handleLogout = () => {
-    setIsLoggedIn(false);
+    document.cookie = 'jwt_token=; Max-Age=0; path=/';
+    setIsAuthenticated(false);
   };
 
   return (
     <Router>
-      {/* Верхняя шапка */}
-      <Header />
-
-      {/* Основной контент */}
+      {isAuthenticated && <Header />}
       <div style={{ display: 'flex' }}>
-        {/* Боковая панель (отображается только для авторизованных пользователей) */}
-        {isLoggedIn && <Sidebar />}
-
-        {/* Основной контент */}
+        {isAuthenticated && <Sidebar />}
         <div className="main-content">
           <Routes>
-            {/* Главная страница — это страница авторизации */}
-            <Route
-              path="/"
-              element={
-                isLoggedIn ? (
-                  <Navigate to="/home" />
-                ) : registered ? (
+            <Route path="/login" element={
+              isAuthenticated ? <Navigate to="/dashboard" /> : (
+                <div className="auth-page">
                   <LoginForm onLogin={handleLogin} />
-                ) : (
-                  <LoginForm onLogin={handleLogin} />
-                )
-              }
-            />
-
-            {/* Страница регистрации */}
-            <Route
-              path="/register"
-              element={
-                isLoggedIn ? (
-                  <Navigate to="/home" />
-                ) : registered ? (
-                  <Navigate to="/" />
-                ) : (
-                  <RegistrationForm onRegister={handleRegister} />
-                )
-              }
-            />
-
-            {/* Защищенные маршруты */}
-            <Route
-              path="/home"
-              element={
-                isLoggedIn ? (
-                  <HomePage onLogout={handleLogout} />
-                ) : (
-                  <Navigate to="/" />
-                )
-              }
-            />
-            <Route
-              path="/scenarios"
-              element={
-                isLoggedIn ? (
-                  <ScenarioPage />
-                ) : (
-                  <Navigate to="/" />
-                )
-              }
-            />
-            <Route
-              path="/devices"
-              element={
-                isLoggedIn ? (
-                  <DevicesPage />
-                ) : (
-                  <Navigate to="/" />
-                )
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                isLoggedIn ? (
-                  <Dashboard />
-                ) : (
-                  <Navigate to="/" />
-                )
-              }
-            />
-
-            {/* Страница 404 */}
-            <Route path="*" element={<NotFound />} />
+                </div>
+              )
+            } />
+            <Route path="/register" element={
+              isAuthenticated ? <Navigate to="/dashboard" /> : (
+                <div className="auth-page">
+                  <RegistrationForm onRegister={handleLogin} />
+                </div>
+              )
+            } />
+            <Route path="/dashboard" element={
+              isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/login" />
+            } />
+            <Route path="/" element={
+              isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+            } />
           </Routes>
         </div>
       </div>
