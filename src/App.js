@@ -5,7 +5,10 @@ import RegistrationForm from './components/RegistrationForm';
 import Dashboard from './pages/Dashboard';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-
+import DevicesPage from './pages/DevicesPage';
+import ScenarioPage from './pages/ScenarioPage';
+import SettingsPage from './pages/SettingsPage';
+import HomePage from './pages/HomePage';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -46,6 +49,32 @@ const App = () => {
         {isAuthenticated && <Sidebar />}
         <div className="main-content">
           <Routes>
+            {/* Главная страница */}
+            <Route path="/" element={
+              isAuthenticated ? <HomePage /> : <Navigate to="/login" />
+            } />
+
+            {/* Страница дашборда */}
+            <Route path="/dashboard" element={
+              isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/login" />
+            } />
+
+            {/* Страница устройств */}
+            <Route path="/devices" element={
+              isAuthenticated ? <DevicesPage /> : <Navigate to="/login" />
+            } />
+
+            {/* Страница сценариев */}
+            <Route path="/scenarios" element={
+              isAuthenticated ? <ScenarioPage /> : <Navigate to="/login" />
+            } />
+
+            {/* Страница настроек */}
+            <Route path="/settings" element={
+              isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />
+            } />
+
+            {/* Страница входа */}
             <Route path="/login" element={
               isAuthenticated ? <Navigate to="/dashboard" /> : (
                 <div className="auth-page">
@@ -53,6 +82,8 @@ const App = () => {
                 </div>
               )
             } />
+
+            {/* Страница регистрации */}
             <Route path="/register" element={
               isAuthenticated ? <Navigate to="/dashboard" /> : (
                 <div className="auth-page">
@@ -60,10 +91,9 @@ const App = () => {
                 </div>
               )
             } />
-            <Route path="/dashboard" element={
-              isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/login" />
-            } />
-            <Route path="/" element={
+
+            {/* Роут для несуществующих страниц */}
+            <Route path="*" element={
               isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
             } />
           </Routes>
