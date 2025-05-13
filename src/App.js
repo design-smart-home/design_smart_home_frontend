@@ -7,7 +7,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import DevicesPage from './pages/DevicesPage';
 import ScenarioPage from './pages/ScenarioPage';
-import SettingsPage from './pages/SettingsPage';
+//import SettingsPage from './pages/SettingsPage';
 import HomePage from './pages/HomePage';
 
 const App = () => {
@@ -69,10 +69,10 @@ const App = () => {
               isAuthenticated ? <ScenarioPage /> : <Navigate to="/login" />
             } />
 
-            {/* Страница настроек */}
+            {/* Страница настроек
             <Route path="/settings" element={
               isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />
-            } />
+            } /> */}
 
             {/* Страница входа */}
             <Route path="/login" element={
