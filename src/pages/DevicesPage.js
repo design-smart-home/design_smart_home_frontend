@@ -1,157 +1,246 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Card from '../components/Card';
-import Modal from '../components/Modal';
-import { Button, message } from 'antd';
+import { Button, Card, Modal, Input, Select, Table, Divider, Tag, message } from 'antd';
+import { useAuth } from '../context/AuthContext';
+import { createDevice, deleteDevice, getDevices } from '../api/deviceApi';
+
+const { Option } = Select;
 
 const DevicesPage = () => {
+  const { jwtToken } = useAuth();
   const [devices, setDevices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [dataType, setDataType] = useState('');
-  const [currentValue, setCurrentValue] = useState(0);
+  const [newDevice, setNewDevice] = useState({
+    name: "",
+    controller: "ESP32",
+    pins: [{ pin: "", type: "digital", mode: "output" }]
+  });
+  const [loading, setLoading] = useState({
+    devices: false,
+    create: false,
+    delete: false
+  });
 
-  // Получаем JWT токен из cookies
-  const getJwtToken = () => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; jwt_token=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
+  // Загрузка устройств
+  const fetchDevices = async () => {
+    setLoading(prev => ({ ...prev, devices: true }));
+    try {
+      const response = await getDevices(jwtToken);
+      setDevices(response.data || response);
+    } catch (error) {
+      message.error('Не удалось загрузить устройства');
+      console.error('Ошибка:', error.response?.data || error.message);
+    } finally {
+      setLoading(prev => ({ ...prev, devices: false }));
+    }
   };
 
-  // Загрузка устройств при монтировании компонента
-  useEffect(() => {
-    const fetchDevices = async () => {
-      const jwtToken = getJwtToken();
-      if (!jwtToken) {
-        message.error('Требуется авторизация');
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          `http://127.0.0.1:80/api/devices/all_devices/${encodeURIComponent(jwtToken)}`
-        );
-        setDevices(response.data);
-      } catch (error) {
-        console.error('Ошибка при загрузке устройств:', error);
-        message.error('Не удалось загрузить устройства');
-      }
-    };
-
-    fetchDevices();
-  }, []);
-
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setName('');
-    setDataType('');
-    setCurrentValue(0);
-  };
-
-  // Добавление нового устройства
-  const addDevice = async () => {
-    const jwtToken = getJwtToken();
-    if (!jwtToken) {
-      message.error('Требуется авторизация');
+  // Создание устройства
+  const handleCreateDevice = async () => {
+    if (!newDevice.name || newDevice.pins.some(p => !p.pin)) {
+      message.error("Заполните все обязательные поля!");
       return;
     }
 
+    setLoading(prev => ({ ...prev, create: true }));
     try {
-      const response = await axios.post(
-        'http://127.0.0.1:80/api/devices',
-        {
-          jwt_token: jwtToken,
-          name: name,
-          data_type: dataType,
-          current_value: currentValue
-        }
-      );
-
-      // Обновляем список устройств
-      const newDevice = {
-        id: response.data.device_id,
-        name: name,
-        data_type: dataType,
-        current_value: currentValue,
-        status: 'АКТИВНО',
+      const deviceData = {
+        jwt_token: jwtToken,
+        name: newDevice.name,
+        controller: newDevice.controller,
+        pins: newDevice.pins.map(pin => ({
+          pin: pin.pin,
+          type: pin.type,
+          mode: pin.mode,
+          id: pin.id || generateUUID()
+        }))
       };
+
+      const response = await createDevice(jwtToken, deviceData);
       
-      setDevices([...devices, newDevice]);
-      message.success('Устройство успешно добавлено!');
-      closeModal();
+      message.success(`Устройство ${response.data?.name || response.name} создано!`);
+      setIsModalOpen(false);
+      setNewDevice({
+        name: "",
+        controller: "ESP32",
+        pins: [{ pin: "", type: "digital", mode: "output" }]
+      });
+      fetchDevices();
     } catch (error) {
-      console.error('Ошибка при добавлении устройства:', error);
-      message.error('Не удалось добавить устройство');
+      message.error(error.response?.data?.message || 'Ошибка при создании устройства');
+      console.error('Ошибка:', error.response?.data || error.message);
+    } finally {
+      setLoading(prev => ({ ...prev, create: false }));
     }
   };
 
   // Удаление устройства
-  const deleteDevice = async (id) => {
+  const handleDeleteDevice = async (deviceId) => {
+    setLoading(prev => ({ ...prev, delete: true }));
     try {
-      await axios.delete(`http://127.0.0.1:80/api/devices/${id}`);
-      setDevices(devices.filter((device) => device.id !== id));
+      await deleteDevice(jwtToken, deviceId);
       message.success('Устройство удалено');
+      fetchDevices();
     } catch (error) {
-      console.error('Ошибка при удалении устройства:', error);
-      message.error('Не удалось удалить устройство');
+      message.error(error.response?.data?.message || 'Ошибка при удалении устройства');
+      console.error('Ошибка:', error.response?.data || error.message);
+    } finally {
+      setLoading(prev => ({ ...prev, delete: false }));
     }
   };
 
-  // Настройка устройства
-  const configureDevice = (id) => {
-    console.log(`Настройка устройства ${id}`);
+  // Загрузка при монтировании
+  useEffect(() => {
+    fetchDevices();
+  }, [jwtToken]);
+
+  // Генерация UUID
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   };
 
   return (
-    <div className="devices-page">
-      <div className="content">
-        <h2>Устройства</h2>
-        <Button type='primary' onClick={openModal}>Добавить устройство</Button>
+    <div className='devices-page'>
+      <Button 
+        type="primary" 
+        onClick={() => setIsModalOpen(true)}
+        loading={loading.devices || loading.delete}
+      >
+        Добавить устройство
+      </Button>
 
-        {devices.length === 0 ? (
-          <p>Устройства отсутствуют. Добавьте новое устройство.</p>
-        ) : (
-          devices.map((device) => (
-            <Card
-              key={device.id}
-              title={device.name}
-              status={device.status || 'АКТИВНО'}
-              onConfigure={() => configureDevice(device.id)}
-              onDelete={() => deleteDevice(device.id)}
+      <Modal
+        title="Новое устройство"
+        open={isModalOpen}
+        onOk={handleCreateDevice}
+        onCancel={() => setIsModalOpen(false)}
+        confirmLoading={loading.create}
+        width={700}
+      >
+        <Input
+          placeholder="Название (ESP32 Кухня)"
+          value={newDevice.name}
+          onChange={(e) => setNewDevice({...newDevice, name: e.target.value})}
+          style={{ marginBottom: 16 }}
+        />
+        
+        <Select
+          value={newDevice.controller}
+          onChange={(controller) => setNewDevice({...newDevice, controller})}
+          style={{ width: '100%', marginBottom: 16 }}
+        >
+          <Option value="ESP32">ESP32</Option>
+          <Option value="Arduino">Arduino</Option>
+          <Option value="Raspberry">Raspberry Pi</Option>
+        </Select>
+
+        <Divider orientation="left">Конфигурация пинов</Divider>
+        {newDevice.pins.map((pin, index) => (
+          <div key={index} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+            <Input
+              placeholder="Пин (D12, A0)"
+              value={pin.pin}
+              onChange={(e) => {
+                const newPins = [...newDevice.pins];
+                newPins[index].pin = e.target.value.toUpperCase();
+                setNewDevice({...newDevice, pins: newPins});
+              }}
+              style={{ width: 120 }}
             />
-          ))
-        )}
+            <Select
+              value={pin.type}
+              onChange={(type) => {
+                const newPins = [...newDevice.pins];
+                newPins[index].type = type;
+                setNewDevice({...newDevice, pins: newPins});
+              }}
+              style={{ width: 120 }}
+            >
+              <Option value="digital">Цифровой</Option>
+              <Option value="analog">Аналоговый</Option>
+            </Select>
+            <Select
+              value={pin.mode}
+              onChange={(mode) => {
+                const newPins = [...newDevice.pins];
+                newPins[index].mode = mode;
+                setNewDevice({...newDevice, pins: newPins});
+              }}
+              style={{ width: 120 }}
+            >
+              <Option value="input">Input</Option>
+              <Option value="output">Output</Option>
+            </Select>
+            <Button 
+              danger 
+              onClick={() => {
+                const newPins = [...newDevice.pins];
+                newPins.splice(index, 1);
+                setNewDevice({...newDevice, pins: newPins});
+              }}
+            >
+              Удалить
+            </Button>
+          </div>
+        ))}
+        <Button onClick={() => setNewDevice({
+          ...newDevice,
+          pins: [...newDevice.pins, { pin: "", type: "digital", mode: "output" }]
+        })}>
+          Добавить пин
+        </Button>
+      </Modal>
 
-        <Modal isOpen={isModalOpen} onClose={closeModal}>
-          <h3>Добавить устройство</h3>
-          <input
-            type="text"
-            placeholder="Название устройства"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Тип данных"
-            value={dataType}
-            onChange={(e) => setDataType(e.target.value)}
-            required
-          />
-          <input
-            type="number"
-            placeholder="Текущее значение"
-            value={currentValue}
-            onChange={(e) => setCurrentValue(parseInt(e.target.value))}
-            required
-          />
-          <button onClick={addDevice}>Добавить</button>
-        </Modal>
+      <div style={{ marginTop: 20 }}>
+        {devices.map(device => (
+          <Card 
+            key={device.device_id} 
+            title={
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span>{device.controller}: {device.name}</span>
+                <Tag color="green" style={{ marginLeft: 10 }}>
+                  online
+                </Tag>
+              </div>
+            }
+            extra={
+              <Button 
+                danger 
+                onClick={() => handleDeleteDevice(device.device_id)}
+                loading={loading.delete}
+              >
+                Удалить
+              </Button>
+            }
+            style={{ marginBottom: 20 }}
+          >
+            <Table
+              columns={[
+                { title: 'Пин', dataIndex: 'pin', key: 'pin' },
+                { 
+                  title: 'Тип', 
+                  dataIndex: 'type',
+                  key: 'type'
+                },
+                { 
+                  title: 'Режим', 
+                  dataIndex: 'mode',
+                  key: 'mode'
+                }
+              ]}
+              dataSource={device.pins?.map((pin, index) => ({ 
+                ...pin,
+                key: pin.id || index
+              })) || []}
+              size="small"
+              pagination={false}
+              loading={loading.devices}
+              locale={{ emptyText: 'Нет данных о пинах' }}
+            />
+          </Card>
+        ))}
       </div>
     </div>
   );

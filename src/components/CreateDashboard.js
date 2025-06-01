@@ -1,118 +1,110 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Button, Input } from 'antd';
+import { Layout, Menu, Button, Input, Select, Modal } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import Widget from './Widget';
-import Workspace from './Workspace';
-//import SliderWidget from './SliderWidget';
-//import SwitchWidget from './SwitchWidget';
+import Widget from '../components/Widget';
+import Workspace from '../components/Workspace';
 
 const { Sider, Content } = Layout;
 
-const CreateDashboard = ({ onSave }) => {
-  const [widgets, setWidgets] = useState([]);
-  const [dashboardName, setDashboardName] = useState('New Dashboard');
-
-  const availableWidgets = [
-    { id: 1, name: 'Слайдер', type: 'slider' },
-    { id: 2, name: 'Свитчер', type: 'switch' },
-  ];
+const CreateDashboard = ({ onSave, dashboard, devices, onCancel }) => {
+  const [widgets, setWidgets] = useState(dashboard?.widgets || []);
+  const [dashboardName, setDashboardName] = useState(dashboard?.name || 'Новый дашборд');
+  const [selectedWidget, setSelectedWidget] = useState(null);
+  const [selectedDevice, setSelectedDevice] = useState(null);
 
   const handleAddWidget = (type) => {
     const newWidget = {
-      id: Date.now(), // Уникальный ID для каждого виджета
-      type, // Сохраняем тип виджета
-      position: { 
-        x: 50 + Math.random() * 100, // Случайное смещение по X
-        y: 50 + Math.random() * 100  // Случайное смещение по Y
-      }
+      id: Date.now(),
+      type,
+      position: { x: 50, y: 50 },
+      deviceId: null
     };
     setWidgets([...widgets, newWidget]);
+    setSelectedWidget(newWidget.id);
   };
 
-  const handleMoveWidget = (id, newPosition) => {
-    setWidgets(widgets.map(widget => 
-      widget.id === id ? { ...widget, position: newPosition } : widget
+  const handleSaveDevice = () => {
+    setWidgets(widgets.map(w => 
+      w.id === selectedWidget ? { ...w, deviceId: selectedDevice } : w
     ));
+    setSelectedWidget(null);
   };
 
   const handleSave = () => {
-    const newDashboard = {
-      id: Date.now(),
+    onSave({
+      id: dashboard?.id || Date.now(),
       name: dashboardName,
-      widgets: widgets.map(widget => ({
-        ...widget,
-        // Удаляем компонент перед сохранением (он будет создаваться при загрузке)
-        component: undefined
-      })),
-    };
-    onSave(newDashboard);
+      widgets
+    });
+    onCancel();
   };
 
   return (
     <DndProvider backend={HTML5Backend}>
       <Layout style={{ minHeight: '100vh', background: '#fff' }}>
-        <Sider width={300} style={{ 
-          background: '#fff',
-          borderRight: '1px solid #f0f0f0',
-          boxShadow: '2px 0 8px 0 rgba(29, 35, 41, 0.05)'
-        }}>
+        <Sider width={250} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
           <div style={{ padding: '16px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '16px' }}>Доступные виджеты</h3>
-            <Menu mode="inline" style={{ borderRight: 0 }}>
-              {availableWidgets.map((widget) => (
-                <Menu.Item key={widget.id} style={{ padding: 0, margin: 0 }}>
-                  <Widget 
-                    type={widget.type} 
-                    onAdd={handleAddWidget}
-                  >
-                    {widget.name}
-                  </Widget>
-                </Menu.Item>
-              ))}
+            <h3>Доступные виджеты</h3>
+            <Menu mode="inline">
+              <Menu.Item key="slider">
+                <Widget type="slider" onAdd={handleAddWidget}>Слайдер</Widget>
+              </Menu.Item>
+              <Menu.Item key="switch">
+                <Widget type="switch" onAdd={handleAddWidget}>Свитчер</Widget>
+              </Menu.Item>
             </Menu>
           </div>
         </Sider>
 
         <Layout>
           <Content style={{ padding: '24px' }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '16px',
-              padding: '16px',
-              background: '#fff',
-              borderRadius: '4px'
-            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <Input
                 value={dashboardName}
                 onChange={(e) => setDashboardName(e.target.value)}
-                style={{ 
-                  width: '300px',
-                  fontSize: '20px', 
-                  fontWeight: 500,
-                  border: 'none',
-                  boxShadow: 'none',
-                  padding: 0,
-                }}
-                bordered={false}
+                style={{ width: '300px', fontSize: '20px' }}
               />
-              <Button 
-                type="primary" 
-                icon={<PlusOutlined />} 
-                onClick={handleSave}
-                style={{ height: '40px' }}
-              >
-                Сохранить Dashboard
-              </Button>
+              <div>
+                <Button style={{ marginRight: 8 }} onClick={onCancel}>
+                  Отмена
+                </Button>
+                <Button type="primary" onClick={handleSave}>
+                  Сохранить
+                </Button>
+              </div>
             </div>
             
             <Workspace 
-              widgets={widgets}
-              onMoveWidget={handleMoveWidget}
+              widgets={widgets} 
+              onMoveWidget={(id, pos) => 
+                setWidgets(widgets.map(w => w.id === id ? { ...w, position: pos } : w))
+              } 
             />
+
+            <Modal
+              title="Выберите устройство"
+              open={!!selectedWidget}
+              onOk={handleSaveDevice}
+              onCancel={() => setSelectedWidget(null)}
+            >
+              <Select
+                style={{ width: '100%' }}
+                placeholder="Выберите устройство"
+                onChange={setSelectedDevice}
+              >
+                {devices
+                  .filter(d => widgets.find(w => w.id === selectedWidget)?.type === 'switch' 
+                    ? d.data_type === 'switch'
+                    : d.data_type === 'slider')
+                  .map(device => (
+                    <Select.Option key={device.id} value={device.id}>
+                      {device.name}
+                    </Select.Option>
+                  ))}
+              </Select>
+            </Modal>
           </Content>
         </Layout>
       </Layout>

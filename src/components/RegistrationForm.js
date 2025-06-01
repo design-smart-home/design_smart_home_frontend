@@ -1,77 +1,91 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { Form, Input, Button, message } from 'antd';
+import { useAuth } from '../context/AuthContext';
 
-
-const RegistrationForm = ({ onRegister }) => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const RegistrationForm = () => {
+  const { register } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const onFinish = async (values) => {
     try {
-      // 1. Регистрация
-      await axios.post('http://127.0.0.1:80/api/users', {
-        username,
-        email,
-        hashed_password: password
-      });
-
-      // 2. Автоматический вход
-      const loginResponse = await axios.post('http://127.0.0.1:80/api/login/token', {
-        email,
-        password
-      });
-
-      onRegister(loginResponse.data.access_token);
-      navigate('/dashboard');
+      setLoading(true);
+      await register(values.username, values.email, values.password);
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Registration failed!');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="auth-form">
+    <div className="auth-form-container">
       <h2>Регистрация</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username:</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Введите имя пользователя"
-            required
-          />
-        </div>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Введите email"
-            required
-          />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Введите пароль"
-            required
-          />
-        </div>
-        <button type="submit">Sing up</button>
-      </form>
-      <button onClick={() => navigate('/')} className="back-button">
-        Log in
-      </button>
+      <Form
+        name="register"
+        onFinish={onFinish}
+        layout="vertical"
+      >
+        <Form.Item
+          name="username"
+          label="Имя пользователя"
+          rules={[{ required: true, message: 'Введите имя пользователя' }]}
+        >
+          <Input />
+        </Form.Item>
+
+        <Form.Item
+          name="email"
+          label="Email"
+          rules={[
+            { required: true, message: 'Введите email' },
+            { type: 'email', message: 'Некорректный email' }
+          ]}
+        >
+          <Input />
+        </Form.Item>
+
+        <Form.Item
+          name="password"
+          label="Пароль"
+          rules={[
+            { required: true, message: 'Введите пароль' },
+            { min: 6, message: 'Пароль должен быть не менее 6 символов' }
+          ]}
+        >
+          <Input.Password />
+        </Form.Item>
+
+        <Form.Item
+          name="confirm"
+          label="Подтверждение пароля"
+          dependencies={['password']}
+          rules={[
+            { required: true, message: 'Подтвердите пароль' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('password') === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error('Пароли не совпадают'));
+              },
+            }),
+          ]}
+        >
+          <Input.Password />
+        </Form.Item>
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading} block>
+            Зарегистрироваться
+          </Button>
+        </Form.Item>
+
+        <Button type="link" onClick={() => navigate('/login')} block>
+          Уже есть аккаунт? Войти
+        </Button>
+      </Form>
     </div>
   );
 };

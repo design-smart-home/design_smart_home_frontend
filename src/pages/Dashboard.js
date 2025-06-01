@@ -1,149 +1,282 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Button, Card, Empty, message } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Layout, Button, Input, Card, Modal, Select, Space, notification } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import EmptyDashboard from '../components/EmptyDashboard';
-import CreateDashboard from '../components/CreateDashboard';
-import DashboardView from '../components/DashboardView';
-import axios from 'axios';
+import WidgetPalette from '../components/WidgetPalette';
+import Workspace from '../components/Workspace';
 
 const { Content } = Layout;
+const { Option } = Select;
 
-const Dashboard = ({ onLogout }) => {
-  const [dashboards, setDashboards] = useState([]);
-  const [isCreatingDashboard, setIsCreatingDashboard] = useState(false);
-  const [currentDashboard, setCurrentDashboard] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+const Dashboard = ({ 
+  dashboards, 
+  controllers, 
+  onSaveDashboard, 
+  onDeleteDashboard 
+}) => {
+  const navigate = useNavigate();
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingDashboard, setEditingDashboard] = useState(null);
+  const [widgets, setWidgets] = useState([]);
+  const [dashboardName, setDashboardName] = useState('Новый дашборд');
+  const [selectedWidget, setSelectedWidget] = useState(null);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [selectedPin, setSelectedPin] = useState(null);
+  const [localControllers, setLocalControllers] = useState(controllers);
 
-  // Получаем JWT токен из cookies
-  const getJwtToken = () => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; jwt_token=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
-  };
-
-  // Загрузка дашбордов при монтировании компонента
+  // Инициализация локальных состояний
   useEffect(() => {
-    const fetchDashboards = async () => {
-      const jwtToken = getJwtToken();
-      if (!jwtToken) {
-        message.error('Требуется авторизация');
-        onLogout();
-        return;
-      }
+    if (editingDashboard) {
+      setDashboardName(editingDashboard.name);
+      setWidgets(editingDashboard.widgets);
+    } else {
+      setDashboardName('Новый дашборд');
+      setWidgets([]);
+    }
+  }, [editingDashboard]);
 
-      try {
-        const response = await axios.get(
-          `http://127.0.0.1:80/api/dashboards/all_dashboards/${encodeURIComponent(jwtToken)}`
-        );
-        setDashboards(response.data);
-      } catch (error) {
-        console.error('Ошибка при загрузке дашбордов:', error);
-        message.error('Не удалось загрузить дашборды');
-      } finally {
-        setIsLoading(false);
-      }
+  const availablePins = localControllers.flatMap(controller => 
+    controller.pins.map(pin => ({
+      controllerId: controller.id,
+      controllerName: controller.name,
+      pin: pin.pin,
+      type: pin.type,
+      mode: pin.mode,
+      value: pin.value,
+      label: `${controller.name} (${pin.pin})`
+    }))
+  );
+
+  const handleAddWidget = (type) => {
+    const newWidget = {
+      id: Date.now(),
+      type,
+      position: { x: 50, y: 50 },
+      controllerId: null,
+      pin: null,
+      deviceName: 'Не привязано',
+      value: type === 'switch' ? false : 50 // Добавляем начальное значение
     };
-
-    fetchDashboards();
-  }, [onLogout]);
-
-  const handleCreateDashboard = () => {
-    setIsCreatingDashboard(true);
-    setCurrentDashboard(null);
+    setWidgets([...widgets, newWidget]);
+    setSelectedWidget(newWidget.id);
+    setIsPinModalOpen(true);
   };
 
-  const handleSaveDashboard = async (newDashboard) => {
-    const jwtToken = getJwtToken();
-    if (!jwtToken) {
-      message.error('Требуется авторизация');
+  const handlePinSelect = () => {
+    if (!selectedPin) return;
+    
+    const [controllerId, pin] = selectedPin.split('|');
+    const controller = localControllers.find(c => c.id === controllerId);
+    const pinData = controller?.pins.find(p => p.pin === pin);
+
+    if (!controller || !pinData) return;
+
+    setWidgets(widgets.map(w => 
+      w.id === selectedWidget 
+        ? { 
+            ...w, 
+            controllerId, 
+            pin,
+            deviceName: `${controller.name} (${pin})`,
+            value: pinData.value
+          } 
+        : w
+    ));
+    
+    setIsPinModalOpen(false);
+    setSelectedPin(null);
+  };
+
+  // Обработчик изменения значения виджета
+  const handleWidgetChange = (widgetId, value) => {
+    const widget = widgets.find(w => w.id === widgetId);
+    if (!widget) return;
+
+    // Обновляем значение виджета
+    setWidgets(prev => prev.map(w => 
+      w.id === widgetId ? { ...w, value } : w
+    ));
+
+    // Если виджет привязан к устройству, обновляем и устройство
+    if (widget.controllerId && widget.pin) {
+      setLocalControllers(prev => 
+        prev.map(controller => 
+          controller.id === widget.controllerId
+            ? {
+                ...controller,
+                pins: controller.pins.map(p => 
+                  p.pin === widget.pin ? { ...p, value } : p
+                )
+              }
+            : controller
+        )
+      );
+    }
+  };
+
+  const handleSaveDashboard = async () => {
+    if (!dashboardName.trim()) {
+      notification.error({
+        message: 'Ошибка',
+        description: 'Введите название дашборда'
+      });
       return;
     }
 
-    try {
-      // Отправка данных на сервер
-      const response = await axios.post(
-        'http://127.0.0.1:80/api/dashboards',
-        {
-          jwt_token: jwtToken,
-          ...newDashboard
-        }
-      );
+    const validatedWidgets = widgets.map(w => ({
+      ...w,
+      position: w.position || { x: 50, y: 50 },
+      deviceName: w.deviceName || 'Не привязано'
+    }));
 
-      // Обновление локального состояния
-      const savedDashboard = {
-        ...newDashboard,
-        id: response.data.dashboard_id
-      };
-      
-      setDashboards([...dashboards, savedDashboard]);
-      message.success('Дашборд успешно создан!');
-      setIsCreatingDashboard(false);
+    if (validatedWidgets.length === 0) {
+      notification.error({
+        message: 'Ошибка',
+        description: 'Добавьте хотя бы один виджет'
+      });
+      return;
+    }
+
+    const newDashboard = {
+      id: editingDashboard?.id || Date.now(),
+      name: dashboardName,
+      widgets: validatedWidgets
+    };
+
+    try {
+      const savedId = await onSaveDashboard(newDashboard);
+      setIsCreating(false);
+      setEditingDashboard(null);
+      navigate(`/dashboard/${savedId}/view`);
     } catch (error) {
-      console.error('Ошибка при создании дашборда:', error);
-      message.error('Не удалось создать дашборд');
+      notification.error({
+        message: 'Ошибка',
+        description: 'Не удалось сохранить дашборд'
+      });
     }
   };
-
-  const handleEditDashboard = (dashboard) => {
-    setCurrentDashboard(dashboard);
-    setIsCreatingDashboard(true);
-  };
-
-  const handleDeleteDashboard = async (id) => {
-    try {
-      await axios.delete(`http://127.0.0.1:80/api/dashboards/${id}`);
-      setDashboards(dashboards.filter(d => d.id !== id));
-      message.success('Дашборд удалён');
-    } catch (error) {
-      console.error('Ошибка при удалении дашборда:', error);
-      message.error('Не удалось удалить дашборд');
-    }
-  };
-
-  if (isLoading) {
-    return <div>Загрузка...</div>;
-  }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Layout>
-        <Content style={{ padding: '24px' }}>
-          {dashboards.length === 0 && !isCreatingDashboard ? (
-            <EmptyDashboard onCreateDashboard={handleCreateDashboard} />
-          ) : isCreatingDashboard ? (
-            <CreateDashboard 
-              onSave={handleSaveDashboard} 
-              dashboard={currentDashboard}
-              onCancel={() => setIsCreatingDashboard(false)}
-            />
-          ) : (
-            <div className="dashboard-container">
-              <div className="dashboard-header">
-                <h1>Мои дашборды</h1>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />}
-                  onClick={handleCreateDashboard}
-                >
-                  Новый дашборд
+    <Layout className='dashboard-layout' style={{ marginTop: 64 }}> {/* Добавлен marginTop */}
+      <Content className='dashboard-content' style={{ 
+        padding: '24px', 
+        minHeight: 'calc(100vh - 64px)' // Учитываем высоту шапки
+      }}>
+        {!isCreating ? (
+          <>
+            {dashboards.length === 0 ? (
+              <EmptyDashboard onCreateDashboard={() => setIsCreating(true)} />
+            ) : (
+              <>
+                <div className='dashboard-header' style={{ marginBottom: 24 }}>
+                  <h1>Мои дашборды</h1>
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setEditingDashboard(null);
+                      setIsCreating(true);
+                    }}
+                  >
+                    Создать дашборд
+                  </Button>
+                </div>
+                
+                <div className='dashboard-grid'>
+                  {dashboards.map(dashboard => (
+                    <Card
+                      key={dashboard.id}
+                      className='dashboard-card'
+                      title={dashboard.name}
+                      actions={[
+                        <Button 
+                          type="text" 
+                          onClick={() => {
+                            setEditingDashboard(dashboard);
+                            setIsCreating(true);
+                          }}
+                        >
+                          Редактировать
+                        </Button>,
+                        <Button 
+                          type="text" 
+                          danger 
+                          onClick={() => onDeleteDashboard(dashboard.id)}
+                        >
+                          Удалить
+                        </Button>,
+                        <Button 
+                          type="text"
+                          onClick={() => navigate(`/dashboard/${dashboard.id}/view`)}
+                        >
+                          Просмотр
+                        </Button>
+                      ]}
+                    >
+                      <p>Виджетов: {dashboard.widgets.length}</p>
+                      <p>Устройств: {
+                        new Set(dashboard.widgets
+                          .filter(w => w.controllerId)
+                          .map(w => w.controllerId))
+                        .size
+                      }</p>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <DndProvider backend={HTML5Backend}>
+            <div className='dashboard-editor-header' style={{ marginBottom: 24 }}>
+              <Input
+                value={dashboardName}
+                onChange={(e) => setDashboardName(e.target.value)}
+                className='dashboard-name-input'
+                placeholder="Название дашборда"
+                style={{ width: 300 }}
+              />
+              <Space>
+                <Button onClick={() => {
+                  setIsCreating(false);
+                  setEditingDashboard(null);
+                }}>
+                  Отмена
                 </Button>
-              </div>
-              
-              <div className="dashboard-list">
-                {dashboards.map((dashboard) => (
-                  <DashboardView
-                    key={dashboard.id}
-                    dashboard={dashboard}
-                    onEdit={handleEditDashboard}
-                    onDelete={handleDeleteDashboard}
-                  />
-                ))}
-              </div>
+                <Button type="primary" onClick={handleSaveDashboard}>
+                  Сохранить дашборд
+                </Button>
+              </Space>
             </div>
-          )}
-        </Content>
-      </Layout>
+
+            <div className='dashboard-editor' style={{ 
+              display: 'flex', 
+              height: 'calc(100vh - 200px)' // Учитываем высоту шапки и заголовка
+            }}>
+              <WidgetPalette onAddWidget={handleAddWidget} />
+              <Workspace 
+                widgets={widgets} 
+                controllers={localControllers}
+                onMoveWidget={(id, newPos) => 
+                  setWidgets(widgets.map(w => 
+                    w.id === id ? { ...w, position: newPos } : w
+                  ))
+                }
+                onConfigure={(id) => {
+                  setSelectedWidget(id);
+                  setIsPinModalOpen(true);
+                }}
+                onWidgetChange={handleWidgetChange}
+              />
+            </div>
+
+            {/* Модальное окно остается без изменений */}
+          </DndProvider>
+        )}
+      </Content>
     </Layout>
   );
 };

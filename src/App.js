@@ -1,106 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Layout } from 'antd';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Dashboard from './pages/Dashboard';
+import ViewDashboard from './pages/ViewDashboardpage';
+import DevicesPage from './pages/DevicesPage';
 import LoginForm from './components/LoginForm';
 import RegistrationForm from './components/RegistrationForm';
-import Dashboard from './pages/Dashboard';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import DevicesPage from './pages/DevicesPage';
-import ScenarioPage from './pages/ScenarioPage';
-//import SettingsPage from './pages/SettingsPage';
-import HomePage from './pages/HomePage';
+import NotFound from './components/NotFound';
 
-const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const { Content } = Layout;
 
-  useEffect(() => {
-    const token = getCookie('jwt_token');
-    if (token) {
-      setIsAuthenticated(true);
-    }
-  }, []);
+const AppLayout = () => {
+  const { user } = useAuth();
+  const location = useLocation();
 
-  const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  };
+  // Пути, которые доступны без авторизации
+  const isAuthRoute = ['/login', '/register'].includes(location.pathname);
 
-  const setCookie = (name, value, days = 30) => {
-    const date = new Date();
-    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-    document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/`;
-  };
-
-  const handleLogin = (token) => {
-    setCookie('jwt_token', token);
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    document.cookie = 'jwt_token=; Max-Age=0; path=/';
-    setIsAuthenticated(false);
-  };
+  if (!user && !isAuthRoute) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
-    <Router>
-      {isAuthenticated && <Header />}
-      <div style={{ display: 'flex' }}>
-        {isAuthenticated && <Sidebar />}
-        <div className="main-content">
-          <Routes>
-            {/* Главная страница */}
-            <Route path="/" element={
-              isAuthenticated ? <HomePage /> : <Navigate to="/login" />
-            } />
-
-            {/* Страница дашборда */}
-            <Route path="/dashboard" element={
-              isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/login" />
-            } />
-
-            {/* Страница устройств */}
-            <Route path="/devices" element={
-              isAuthenticated ? <DevicesPage /> : <Navigate to="/login" />
-            } />
-
-            {/* Страница сценариев */}
-            <Route path="/scenarios" element={
-              isAuthenticated ? <ScenarioPage /> : <Navigate to="/login" />
-            } />
-
-            {/* Страница настроек
-            <Route path="/settings" element={
-              isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />
-            } /> */}
-
-            {/* Страница входа */}
-            <Route path="/login" element={
-              isAuthenticated ? <Navigate to="/dashboard" /> : (
-                <div className="auth-page">
-                  <LoginForm onLogin={handleLogin} />
-                </div>
-              )
-            } />
-
-            {/* Страница регистрации */}
-            <Route path="/register" element={
-              isAuthenticated ? <Navigate to="/dashboard" /> : (
-                <div className="auth-page">
-                  <RegistrationForm onRegister={handleLogin} />
-                </div>
-              )
-            } />
-
-            {/* Роут для несуществующих страниц */}
-            <Route path="*" element={
-              isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
-            } />
-          </Routes>
-        </div>
-      </div>
-    </Router>
+    <Layout style={{ minHeight: '100vh' }}>
+      {user && (
+        <>
+          <Header />
+          <Layout>
+            <Sidebar />
+            <Content style={{ padding: '24px', background: '#f0f2f5' }}>
+              <Routes>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/:id/view" element={<ViewDashboard />} />
+                <Route path="/devices" element={<DevicesPage />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Content>
+          </Layout>
+        </>
+      )}
+      
+      {!user && (
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={<RegistrationForm />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      )}
+    </Layout>
   );
 };
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppLayout />
+      </AuthProvider>
+    </Router>
+  );
+}
 
 export default App;

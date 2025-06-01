@@ -1,57 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { Form, Input, Button, message } from 'antd';
+import { useAuth } from '../context/AuthContext';
 
-
-const LoginForm = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const LoginForm = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const onFinish = async (values) => {
     try {
-      const response = await axios.post('http://127.0.0.1:80/api/login/token', {
-        email,
-        password
-      });
-      onLogin(response.data.access_token);
-      navigate('/dashboard');
+      setLoading(true);
+      await login(values.email, values.password);
     } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed!');
+      message.error('Ошибка входа. Проверьте данные');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="auth-form">
-      <h2>Вход</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Введите email"
-            required
-          />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Введите пароль"
-            required
-          />
-        </div>
-        <button type="submit">Log in</button>
-      </form>
-      <button onClick={() => navigate('/register')} className="register-button">
-        Sing up
-      </button>
+    <div style={{ 
+      maxWidth: 400,
+      margin: '100px auto',
+      padding: 20,
+      background: '#fff',
+      borderRadius: 8,
+      boxShadow: '0 0 10px rgba(0,0,0,0.1)'
+    }}>
+      <h2 style={{ textAlign: 'center', marginBottom: 24 }}>Вход в систему</h2>
+      <Form onFinish={onFinish} layout="vertical">
+        <Form.Item
+          name="email"
+          label="Email"
+          rules={[{ required: true, message: 'Введите email' }]}
+        >
+          <Input />
+        </Form.Item>
+
+        <Form.Item
+          name="password"
+          label="Пароль"
+          rules={[{ required: true, message: 'Введите пароль' }]}
+        >
+          <Input.Password />
+        </Form.Item>
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading} block>
+            Войти
+          </Button>
+        </Form.Item>
+      </Form>
     </div>
   );
 };

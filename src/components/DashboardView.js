@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Button, Space } from 'antd';
 import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 
 const DashboardView = ({ dashboard, onEdit, onDelete }) => {
   return (
@@ -8,11 +9,9 @@ const DashboardView = ({ dashboard, onEdit, onDelete }) => {
       title={dashboard.name}
       style={{ width: 300, margin: '16px' }}
       actions={[
-        <Button 
-          type="text" 
-          icon={<EyeOutlined />} 
-          onClick={() => console.log('View', dashboard.id)}
-        />,
+        <Link to={`/dashboard/${dashboard.id}/view`}>
+          <Button type="text" icon={<EyeOutlined />} />
+        </Link>,
         <Button 
           type="text" 
           icon={<EditOutlined />} 
@@ -26,8 +25,8 @@ const DashboardView = ({ dashboard, onEdit, onDelete }) => {
         />,
       ]}
     >
-      <p>Количество виджетов: {dashboard.widgets.length}</p>
-      <p>Создан: {new Date(dashboard.id).toLocaleDateString()}</p>
+      <p>Виджетов: {dashboard.widgets.length}</p>
+      <p>Устройств: {dashboard.widgets.filter(w => w.deviceId).length}</p>
     </Card>
   );
 };

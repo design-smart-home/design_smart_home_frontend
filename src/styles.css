@@ -61,6 +61,7 @@ body.auth-page {
 .home-page, .scenario-page, .devices-page {
   padding: 20px;
   margin-left: 250px;
+  margin-top: 100px;
 }
 
 .content {
@@ -77,6 +78,7 @@ body.auth-page {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  
 }
 
 .card h3 {
@@ -154,7 +156,7 @@ body.auth-page {
 /* ========== БОКОВАЯ ПАНЕЛЬ ========== */
 .sidebar {
   width: 250px;
-  background-color: #f5f5f5;
+  background-color: #cecece;
   padding: 20px;
   height: calc(100vh - 60px);
   position: fixed;
@@ -218,6 +220,8 @@ body.auth-page {
 .dashboard-layout {
   min-height: 100vh;
   background: #fff;
+  margin-left: 250px;
+  transition: margin-left 0.3s;
 }
 
 .dashboard-content {
@@ -232,16 +236,83 @@ body.auth-page {
   padding: 16px;
   background: #fff;
   border-radius: 4px;
+  margin-top: 0px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.dashboard-card {
+  transition: all 0.3s;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.dashboard-editor-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
 .dashboard-name-input {
   width: 300px;
   font-size: 20px;
   font-weight: 500;
-  border: none;
-  box-shadow: none;
-  padding: 0;
 }
+
+.view-container {
+  margin-left: 250px; /* Совпадает с сайдбаром */
+  padding: 24px;
+  min-height: calc(100vh - 64px); /* Высота минус header */
+  background-color: #f0f2f5;
+  transition: margin-left 0.3s;
+}
+
+.view-content {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  min-height: 80vh;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.view-title {
+  color: #1890ff;
+  margin-bottom: 24px;
+  font-size: 24px;
+}
+
+.view-workspace {
+  position: relative;
+  min-height: 500px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  background-color: #fafafa;
+}
+
+.view-widget {
+  position: absolute;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  cursor: default;
+  transition: all 0.3s;
+}
+
+.view-widget:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+
 
 .dashboard-name-input:focus {
   boxShadow: none;
